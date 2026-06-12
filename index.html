@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мой Кликер 🐹</title>
+    <style>
+        /* Основной дизайн */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: start;
+            min-height: 100vh;
+            background-color: #f0f4f8;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            width: 300px;
+            max-width: 90%;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            text-align: center;
+        }
+
+        #counter {
+            font-size: 72px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-top: 10px;
+            transition: transform 0.1s ease-in-out;
+        }
+
+        /* Блок для вывода звания */
+        #rank-label {
+            font-size: 16px;
+            font-style: italic;
+            color: #6B7280;
+            margin-top: 5px;
+        }
+
+        /* Оформление кнопок */
+        button {
+            font-size: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            background-color: #60a5fa;
+            color: white;
+            font-weight: bold;
+            outline: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        button:hover { background-color: #3b82f6; }
+        button:active { transform: translateY(2px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+
+        /* Оформление магазинов */
+        .shop-item {
+            display: grid;
+            grid-template-columns: repeat(3, auto);
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 10px;
+            background-color: #ebeff7;
+        }
+        .shop-item button { font-size: 14px; padding: 5px 10px; background-color: #22c55e; }
+        .shop-item button.disabled { opacity: 0.5; cursor: not-allowed; background-color: gray; }
+
+        /* Оформление автосалона */
+        .car-showroom {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .car-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #ebeff7;
+            margin-bottom: 5px;
+        }
+        .car-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .car-desc {
+            font-size: 14px;
+            color: #6B7280;
+        }
+        .car-action {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Кнопка сохранения */
+        #save-button {
+            margin-top: 10px;
+            font-size: 16px;
+            padding: 5px 10px;
+            background-color: #10B981;
+            color: white;
+        }
+        #save-button:hover { background-color: #059669; }
+
+        /* Интерфейс карты мира */
+        #world-map-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+        .world-map-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80vw;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Мой Кликер 🐹</h1>
+    
+    <!-- Главный счётчик и блок для звания -->
+    <div id="counter">0</div>
+    <div id="rank-label"></div>
+
+    <div style="margin-top: 10px;">
+        <button onclick="manualClick()">КЛИК!</button>
+        <button onclick="openShop()">🛒 Магазин</button>
+        <button onclick="openCarShowroom()">🚗 Автосалон</button>
+        <button onclick="openBank()">🏦 Банк</button>
+        <button onclick="openWorldMap()">🌍 Карта мира</button>
+    </div>
+
+    <!-- КНОПКА РУЧНОГО СОХРАНЕНИЯ -->
+    <button id="save-button" onclick="saveGameState()">💾 Сохранить вручную</button>
+
+    <!-- Поп-ап магазина (улучшений) -->
+    <div id="shop-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:10px; width:80vw; max-width:400px;">
+            <h2>Магазин Улучшений</h2>
+            <span id="close-btn" style="cursor:pointer; float:right;">✖️</span>
+            <br><br>
+            <div id="shop-list"></div>
+        </div>
+    </div>
+
+    <!-- Поп-ап автосалона -->
+    <div id="car-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:10px; width:80vw; max-width:400px;">
+            <h2>Автосалон 🚗</h2>
+            <span id="car-close-btn" style="cursor:pointer; float:right;">✖️</span>
+            <br><br>
+            <div class="car-showroom" id="car-list"></div>
+        </div>
+    </div>
+
+    <!-- Поп-ап Банка -->
+    <div id="bank-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:10px; width:80vw; max-width:400px;">
+            <h2>Банк 🏦</h2>
+            <span id="bank-close-btn" style="cursor:pointer; float:right;">✖️</span>
+            <br><br>
+            <div id="bank-content"></div>
+        </div>
+    </div>
+
+    <!-- Поп-ап карты мира -->
+    <div id="world-map-modal" style="display:none;">
+        <div class="world-map-content">
+            <h2>Карта мира 🌍</h2>
+            <span id="map-close-btn" style="cursor:pointer; float:right;">✖️</span>
+            <br><br>
+            <div id="world-regions"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ********************** НАСТРОЙКИ И КОНСТАНТЫ *****************************
+
+const COUNTER_ELEMENT = document.getElementById('counter');
+const RANK_LABEL = document.getElementById('rank-label'); // Элемент для звания
+
+// Таблица званий (Threshold - порог в кликах)
+const RANKS = [
+    { threshold: 0,   title: 'Начинающий' },
+    { threshold: 100, title: 'Любитель' },
+    { threshold: 500, title: 'Опытный' },
+    { threshold: 1500, title: 'Мастер' },
+    { threshold: 3000, title: 'Эксперт' },
+    { threshold: 5000, title: 'Профи' },
+    { threshold: 10000, title: 'Гуру' },
+    { threshold: 20000, title: 'Ветеран' },
+    { threshold: 50000, title: 'Легенда' },
+    { threshold: Infinity, title: 'Император' }
+];
+
+// Ограничение на оффлайн-дохид (Anti-Cheat)
+const MAX_OFFLINE_SECONDS = 7200; // 2 Часа (2 * 60 * 60)
+
+// ПОСТОЯННЫЕ ПАРАМЕТРЫ ПРЕДПРИЯТИЙ (не меняются никогда)
+const BASE_ENTERPRISES = [
+    { name: 'Курица 🐔', baseCost: 10, baseIncome: 1 },
+    { name: 'Ферма 🏠', baseCost: 200, baseIncome: 1 },
+    { name: 'Завод ⚙️', baseCost: 1000, baseIncome: 10 },
+    { name: 'Корпорация 🏢', baseCost: 10000, baseIncome: 100 },
+    { name: 'Научный центр 🔬', baseCost: 50000, baseIncome: 500 },
+    { name: 'Космодром 🚀', baseCost: 250000, baseIncome: 2500 },
+    { name: 'Планетарный комплекс 🌌', baseCost: 1000000, baseIncome: 10000 },
+    { name: 'Галактическая империя 🌠', baseCost: 5000000, baseIncome: 50000 }
+];
+
+// ПОСТОЯННЫЕ ПАРАМЕТРЫ АВТОМОБИЛЕЙ (не меняются никогда)
+const BASE_CARS = [
+    {
+        name: 'АвтоВАЗ 🦸‍♂️ (Лада)',
+        description: '+1 очко за клик',
+        baseCost: 50,
+        power: 1,
+        maxAmount: 20,
+    },
+    {
+        name: 'ЛамбаРГИНЯ 🔥 (Ламборджини)',
+        description: '+3 очка за клик',
+        baseCost: 500,
+        power: 3,
+        maxAmount: 10,
+    },
+    {
+        name: 'БОРЩ 🍽️ (Порш)',
+        description: '+5 очков за клик',
+        baseCost: 5000,
+        power: 5,
+        maxAmount: 2,
+    },
+    {
+        name: 'Гиперкар 🚗 (Tesla Roadster)',
+        description: '+10 очков за клик',
+        baseCost: 25000,
+        power: 10,
+        maxAmount: 1,
+    }
+];
+
+// ********************** НОВАЯ СИСТЕМА КАРТА МИРА И ЗАВОЕВАНИЙ **********************
+
+// Объекты регионов мира
+const WORLD_MAP_REGIONS = [
+    {
+        name: 'Европа',
+        baseCost: 1000,
+        incomeBonus: 10,
+        clickPowerBoost: 0.1,
+        unlocked: false
+    },
+    {
+        name: 'Азия',
+        baseCost: 2000,
+        incomeBonus: 20,
+        clickPowerBoost: 0.2,
+        unlocked: false
+    },
+    {
+        name: 'Африка',
+        baseCost: 3000,
+        incomeBonus: 30,
+        clickPowerBoost: 0.3,
+        unlocked: false
+    },
+    {
+        name: 'Северная Америка',
+        baseCost: 4000,
+        incomeBonus: 40,
+        clickPowerBoost: 0.4,
+        unlocked: false
+    },
+    {
+        name: 'Южная Америка',
+        baseCost: 5000,
+        incomeBonus: 50,
+        clickPowerBoost: 0.5,
+        unlocked: false
+    },
+    {
+        name: 'Австралия',
+        baseCost: 6000,
+        incomeBonus: 60,
+        clickPowerBoost: 0.6,
+        unlocked: false
+    },
+    {
+        name: 'Антарктида',
+        baseCost: 7000,
+        incomeBonus: 70,
+        clickPowerBoost: 0.7,
+        unlocked: false
+    }
+];
+
+// Функция для покупки региона
+function purchaseRegion(regionIndex) {
+    const region = WORLD_MAP_REGIONS[regionIndex];
+    
+    if (!region.unlocked && currentCount >= region.baseCost) {
+        currentCount -= region.baseCost;
+        region.unlocked = true;
+        
+        // Применение бонусов
+        passiveIncomePerSecond += region.incomeBonus;
+        clickPower += region.clickPowerBoost;
+        
+        saveGameState();
+        updateUI();
+    }
+}
+
+// Функция для расчёта общих бонусов от территорий
+function calculateTerritoryBonuses() {
+    let totalIncomeBonus = 0;
+    let totalClickPowerBoost = 0;
+    
+    WORLD_MAP_REGIONS.forEach(region => {
+        if (region.unlocked) {
+            totalIncomeBonus += region.incomeBonus;
+            totalClickPowerBoost += region.clickPowerBoost;
+        }
+    });
+    
+    passiveIncomePerSecond += totalIncomeBonus;
+    clickPower += totalClickPowerBoost;
+}
+
+// Функция открытия карты мира
+function openWorldMap() {
+    const regionsList = document.getElementById('world-regions');
+    regionsList.innerHTML = '';
+
+    WORLD_MAP_REGIONS.forEach((region, index) => {
+        const listItem = `
+            <li>
+                ${region.name} - Стоимость: ${region.baseCost}
+                <button onclick="purchaseRegion(${index})" ${region.unlocked ? 'disabled' : ''}>
+                    ${region.unlocked ? 'Завоевано!' : 'Завоевать'}
+                </button>
+            </li>
+        `;
+        regionsList.insertAdjacentHTML('beforeend', listItem);
+    });
+
+    document.getElementById('world-map-modal').style.display = 'block';
+}
+
+// ********************** БАНКОВСКАЯ СИСТЕМА ************************************
+
+// Константы банка
+const BANK_DEPOSITS = [
+    { name: 'Стандартный депозит', minSum: 100, termWeeks: 1, rate: 0.05 },
+    { name: 'Премиальный депозит', minSum: 1000, termWeeks: 2, rate: 0.1 },
+    { name: 'Накопительный депозит', minSum: 500, termWeeks: null, rate: 0.02 }
+];
+
+const LOAN_TYPES = [
+    { name: 'Краткосрочный кредит', maxSum: 0.5, interestRate: 0.02 },
+    { name: 'Долгосрочный кредит', maxSum: 1, interestRate: 0.05 }
+];
+
+// Переменные банка
+let bankDeposits = [];
+let premiumAccountActive = false;
+let loyaltyPoints = 0;
+
+// Функции банка
+function depositFunds(depositType) {
+    const deposit = BANK_DEPOSITS.find(d => d.name === depositType);
+    const amount = prompt(`Введите сумму для вклада (${deposit.minSum} минимум):`);
+    if (amount >= deposit.minSum && currentCount >= amount) {
+        currentCount -= parseFloat(amount);
+        bankDeposits.push({ type: depositType, sum: parseFloat(amount), weeksLeft: deposit.termWeeks });
+        alert(`Вклад успешно открыт!`);
+        saveGameState();
+        updateUI();
+    } else {
+        alert("Недостаточно средств или неверная сумма.");
+    }
+}
+
+function takeLoan(loanType) {
+    const loan = LOAN_TYPES.find(l => l.name === loanType);
+    const assetsValue = ownedEnterprises.reduce((sum, e, i) => sum + BASE_ENTERPRISES[i].baseCost * e, 0) +
+                       ownedCars.reduce((sum, c, i) => sum + BASE_CARS[i].baseCost * c, 0);
+    const maxLoan = assetsValue * loan.maxSum;
+    const requested = prompt(`Введите желаемую сумму займа (до ${maxLoan}):`);
+    if (requested <= maxLoan && requested > 0) {
+        currentCount += parseFloat(requested);
+        alert(`Кредит выдан! Ваш долг составляет ${parseFloat(requested) * (1 + loan.interestRate)}.`);
+        saveGameState();
+        updateUI();
+    } else {
+        alert("Сумма вне диапазона или недостаточно залога.");
+    }
+}
+
+function activatePremiumAccount(durationMonths) {
+    const cost = durationMonths === 1 ? 1000 : 10000;
+    if (currentCount >= cost) {
+        currentCount -= cost;
+        premiumAccountActive = true;
+        alert(`Премиум-аккаунт активирован на ${durationMonths} мес.`);
+        saveGameState();
+        updateUI();
+    } else {
+        alert("Недостаточно средств.");
+    }
+}
+
+function redeemLoyaltyReward(rewardName) {
+    switch (rewardName) {
+        case 'Золотой палец':
+            if (loyaltyPoints >= 100) {
+                loyaltyPoints -= 100;
+                alert("Активирован Золотой палец!");
+            } else {
+                alert("Недостаточно баллов.");
+            }
+            break;
+        case 'Экономическая реформа':
+            if (loyaltyPoints >= 500) {
+                loyaltyPoints -= 500;
+                alert("Применена Экономическая реформа!");
+            } else {
+                alert("Недостаточно баллов.");
+            }
+            break;
+        default:
+            alert("Награда недоступна.");
+    }
+    saveGameState();
+    updateUI();
+}
+
+// ********************** БИЗНЕС-ЛОГИКА ***********************************
+
+// Вспомогательные функции
+function formatNumber(num) {
+    return num.toFixed(0).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
+}
+
+// Определяет текущее звание по общему числу кликов
+function determineRank(clicks) {
+    for (let rank of RANKS) {
+        if (clicks < rank.threshold) return rank.title;
+    }
+    return RANKS[RANKS.length - 1].title;
+}
+
+// Проверка на получение нового звания
+function checkForRankUp(oldTotal, newTotal) {
+    const oldRank = determineRank(oldTotal);
+    const newRank = determineRank(newTotal);
+    if (oldRank !== newRank) {
+        setTimeout(() => {
+            alert(`Поздравляем! Вы достигли нового звания: ${newRank}`);
+            
+            // Бонус за новое звание
+            clickPower += 0.1;
+            passiveIncomePerSecond += 0.5;
+        }, 100);
+    }
+}
+
+// ********************** ОСНОВНЫЕ ФУНКЦИИ ИГРОКА *************************
+
+// Глобальные переменные
+let currentCount = 0; // Текущий счёт
+let totalClicksEver = 0; // Общее число кликов (для званий)
+let passiveIncomePerSecond = 0; // Пассивный доход
+let clickPower = 1; // Сила клика (увеличивается машинами)
+
+// Массивы для хранения статистики (сколько куплено)
+let ownedEnterprises = Array(BASE_ENTERPRISES.length).fill(0); // [0, 0, 0, 0]
+let ownedCars = Array(BASE_CARS.length).fill(0); // [0, 0, 0]
+
+// Ручной клик мышью
+function manualClick() {
+    currentCount += clickPower; // Применяем силу клика
+    totalClicksEver++;
+
+    // Проверка на повышение звания
+    checkForRankUp(totalClicksEver - 1, totalClicksEver);
+
+    updateUI();
+}
+
+// Покупка улучшения (Предприятие)
+function buyEnterprise(index) {
+    const baseEnt = BASE_ENTERPRISES[index];
+    const count = ownedEnterprises[index]; // Сколько уже купили
+
+    // Вычисляем актуальные параметры (рост 30%)
+    const currentCost = Math.ceil(baseEnt.baseCost * Math.pow(1.3, count));
+    const currentIncome = baseEnt.baseIncome * Math.pow(count + 1, 1.5); // Замедленный рост прибыли
+
+    if (currentCount >= currentCost) {
+        currentCount -= currentCost;
+        ownedEnterprises[index]++;
+        passiveIncomePerSecond += currentIncome;
+
+        saveGameState();
+        updateUI();
+    }
+}
+
+// Покупка автомобиля
+function buyCar(carIndex) {
+    const baseCar = BASE_CARS[carIndex];
+    const count = ownedCars[carIndex]; // Сколько уже купили
+
+    // Проверка лимита
+    if (count >= baseCar.maxAmount) {
+        alert('Вы достигли предела владения этим автомобилем!');
+        return;
+    }
+
+    // Линейный рост цены
+    const currentPrice = baseCar.baseCost * (count + 1);
+
+    let bonusMultiplier = 1;
+    if (count > 0) {
+        bonusMultiplier *= Math.pow(0.5, count);
+    }
+
+    if (currentCount >= currentPrice) {
+        currentCount -= currentPrice;
+        ownedCars[carIndex]++;
+        clickPower += baseCar.power * bonusMultiplier; // Усиливаем клик
+
+        saveGameState();
+        updateUI();
+    }
+}
+
+// Открытие магазина (улучшений)
+function openShop() {
+    const shopDiv = document.getElementById('shop-list');
+    shopDiv.innerHTML = '';
+
+    for (let i = 0; i < BASE_ENTERPRISES.length; i++) {
+        const baseEnt = BASE_ENTERPRISES[i];
+        const count = ownedEnterprises[i];
+
+        // Вычисляем актуальные параметры
+        const currentCost = Math.ceil(baseEnt.baseCost * Math.pow(1.3, count));
+        const currentIncome = baseEnt.baseIncome * Math.pow(count + 1, 1.5);
+        const canBuy = currentCount >= currentCost;
+
+        const itemHtml = `
+            <div class="shop-item">
+                <strong>${baseEnt.name}</strong>
+                (<span>${count}x</span>)
+                <div>Цена: ${formatNumber(currentCost)}</div>
+                <div>Доход/сек: ${formatNumber(currentIncome)}</div>
+                <button onclick="buyEnterprise(${i})" ${canBuy ? '' : 'disabled class="disabled"'}>
+                    Купить (${canBuy ? '+' : '-'})
+                </button>
+            </div>
+        `;
+        shopDiv.insertAdjacentHTML('beforeend', itemHtml);
+    }
+
+    document.getElementById('shop-modal').style.display = 'block';
+}
+
+// Открытие автосалона
+function openCarShowroom() {
+    const carDiv = document.getElementById('car-list');
+    carDiv.innerHTML = '';
+
+    for (let i = 0; i < BASE_CARS.length; i++) {
+        const baseCar = BASE_CARS[i];
+        const count = ownedCars[i];
+        const currentPrice = baseCar.baseCost * (count + 1); // Рассчитываем цену
+
+        // Проверка доступности (денег и лимита)
+        const hasMoney = currentCount >= currentPrice;
+        const isMaxedOut = count >= baseCar.maxAmount;
+
+        const itemHtml = `
+            <div class="car-card">
+                <div class="car-info">
+                    <div class="car-name">${baseCar.name}</div>
+                    <div class="car-desc">${baseCar.description}<br>Кол-во: ${count}/${baseCar.maxAmount}</div>
+                </div>
+                <div class="car-action">
+                    <div>Цена: ${formatNumber(currentPrice)}</div>
+                    <button onclick="buyCar(${i})"
+                        ${isMaxedOut ? 'disabled class="disabled"' : ''}
+                        ${hasMoney && !isMaxedOut ? '' : 'disabled class="disabled"'}
+                    >
+                        Купить ${hasMoney && !isMaxedOut ? '+' : '-'}
+                    </button>
+                </div>
+            </div>
+        `;
+        carDiv.insertAdjacentHTML('beforeend', itemHtml);
+    }
+
+    document.getElementById('car-modal').style.display = 'block';
+}
+
+// Открытие банка
+function openBank() {
+    const bankDiv = document.getElementById('bank-content');
+    bankDiv.innerHTML = '';
+
+    // Депозиты
+    bankDiv.innerHTML += '<h3>Депозиты:</h3>';
+    BANK_DEPOSITS.forEach(dep => {
+        bankDiv.innerHTML += `<p>${dep.name}: <button onclick="depositFunds('${dep.name}')">Открыть</button></p>`;
+    });
+
+    // Кредиты
+    bankDiv.innerHTML += '<h3>Кредиты:</h3>';
+    LOAN_TYPES.forEach(loa => {
+        bankDiv.innerHTML += `<p>${loa.name}: <button onclick="takeLoan('${loa.name}')">Взять</button></p>`;
+    });
+
+    // Премиум-аккаунт
+    bankDiv.innerHTML += '<h3>Премиум-аккаунт:</h3>';
+    bankDiv.innerHTML += `<p>Месяц (1000): <button onclick="activatePremiumAccount(1)">Купить</button></p>`;
+    bankDiv.innerHTML += `<p>Год (10000): <button onclick="activatePremiumAccount(12)">Купить</button></p>`;
+
+    // Программа лояльности
+    bankDiv.innerHTML += '<h3>Программа лояльности:</h3>';
+    bankDiv.innerHTML += `<p>Баллов: ${loyaltyPoints}</p>`;
+    bankDiv.innerHTML += `<p>Золотой палец (100): <button onclick="redeemLoyaltyReward('Золотой палец')">Получить</button></p>`;
+    bankDiv.innerHTML += `<p>Экономическая реформа (500): <button onclick="redeemLoyaltyReward('Экономическая реформа')">Получить</button></p>`;
+
+    document.getElementById('bank-modal').style.display = 'block';
+}
+
+// Обновление интерфейса
+function updateUI() {
+    COUNTER_ELEMENT.textContent = formatNumber(currentCount);
+
+    // Вывод звания
+    const currentRank = determineRank(totalClicksEver);
+    RANK_LABEL.textContent = `Ваш ранг: ${currentRank}`;
+}
+
+// Обновление пассивного дохода (вызывается каждые 500 мс)
+function updatePassiveIncomeDisplay() {
+    const allowedPassiveIncome = Math.min(passiveIncomePerSecond, currentCount / 2);
+    currentCount += allowedPassiveIncome / 2;
+    updateUI();
+}
+
+// ********************** СИСТЕМА СОХРАНЕНИЯ ПРОГРЕССА ***************
+
+// Сохранение состояния в Local Storage
+function saveGameState() {
+    const saveObject = {
+        currentCount,
+        totalClicksEver,
+        ownedEnterprises,
+        ownedCars,
+        bankDeposits,
+        premiumAccountActive,
+        loyaltyPoints,
+        worldMapRegions: WORLD_MAP_REGIONS.map(r => ({...r})),
+        timestamp: Date.now()
+    };
+
+    window.localStorage.setItem('my_clicker_save', JSON.stringify(saveObject));
+}
+
+// Загрузка прогресса из Local Storage
+function loadGameState() {
+    const savedData = window.localStorage.getItem('my_clicker_save');
+    if (!savedData) return;
+
+    const data = JSON.parse(savedData);
+
+    currentCount = data.currentCount || 0;
+    totalClicksEver = data.totalClicksEver || 0;
+
+    for (let i = 0; i < BASE_ENTERPRISES.length; i++) {
+        ownedEnterprises[i] = data.ownedEnterprises?.[i] ?? 0;
+    }
+    for (let i = 0; i < BASE_CARS.length; i++) {
+        ownedCars[i] = data.ownedCars?.[i] ?? 0;
+    }
+
+    bankDeposits = data.bankDeposits || [];
+    premiumAccountActive = data.premiumAccountActive || false;
+    loyaltyPoints = data.loyaltyPoints || 0;
+
+    // Загрузка состояний регионов
+    WORLD_MAP_REGIONS.forEach((region, index) => {
+        Object.assign(region, data.worldMapRegions[index]);
+    });
+
+    // Пересчет пассивного дохода при загрузке
+    passiveIncomePerSecond = 0;
+    BASE_ENTERPRISES.forEach((ent, idx) => {
+        passiveIncomePerSecond += ent.baseIncome * Math.pow(ownedEnterprises[idx] + 1, 1.5);
+    });
+
+    // Пересчет силы клика
+    clickPower = 1;
+    BASE_CARS.forEach((car, idx) => {
+        const multiplier = Math.pow(0.5, ownedCars[idx]);
+        clickPower += Math.round(car.power * multiplier);
+    });
+
+    if (data.timestamp) {
+        calculateOfflineEarnings(data.timestamp);
+    }
+}
+
+// Вычисляет сумму, которую игрок заработал, пока не играл
+function calculateOfflineEarnings(timestamp) {
+    const now = Date.now(); // Текущие миллисекунды
+    const msSinceLastVisit = now - timestamp;
+
+    const secondsPassed = Math.min(Math.floor(msSinceLastVisit / 1000), MAX_OFFLINE_SECONDS);
+    const offlineGain = passiveIncomePerSecond * secondsPassed;
+
+    if (offlineGain > 0) {
+        currentCount += offlineGain;
+    }
+}
+
+// ********************** ЖИЗНЕННЫЙ ЦИКЛ ИГРЫ *****************************
+
+// Устанавливаем таймер для пассивного дохода (2 раза в секунду)
+setInterval(updatePassiveIncomeDisplay, 500);
+
+// Загружаем прогресс при открытии страницы
+window.onload = function() {
+    loadGameState();
+    updateUI();
+};
+
+// Сохраняем прогресс каждые 1 минуту
+setInterval(saveGameState, 60000);
+
+// Сохраняем прогресс перед закрытием вкладки (работает в большинстве браузеров)
+window.addEventListener('beforeunload', saveGameState);
+
+// Скрываем магазины и сохраняем прогресс при закрытии попапа
+document.getElementById('close-btn').addEventListener('click', () => {
+    document.getElementById('shop-modal').style.display = 'none';
+    saveGameState();
+});
+document.getElementById('car-close-btn').addEventListener('click', () => {
+    document.getElementById('car-modal').style.display = 'none';
+    saveGameState();
+});
+document.getElementById('bank-close-btn').addEventListener('click', () => {
+    document.getElementById('bank-modal').style.display = 'none';
+    saveGameState();
+});
+document.getElementById('map-close-btn').addEventListener('click', () => {
+    document.getElementById('world-map-modal').style.display = 'none';
+    saveGameState();
+});
+
+// ✅ ИНИЦИАЛИЗАЦИЯ (первичный запуск интерфейса)
+updateUI();
+</script>
+
+</body>
+</html>
